@@ -1,0 +1,14 @@
+#ignore dataset
+dataset.txt
+
+#ignore gradle
+.gradle
+gradle
+gradlew
+gradlew.bat
+
+# ignore the .idea folder
+.idea
+
+# ignore the build folder
+build
