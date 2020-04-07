@@ -3,22 +3,8 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.TaskContext;
-import org.apache.spark.executor.TaskMetrics;
-import org.apache.spark.memory.TaskMemoryManager;
-import org.apache.spark.metrics.source.Source;
-import org.apache.spark.shuffle.FetchFailedException;
-import org.apache.spark.storage.StorageLevel;
-import org.apache.spark.util.AccumulatorV2;
-import org.apache.spark.util.TaskCompletionListener;
-import org.apache.spark.util.TaskFailureListener;
-import scala.Option;
 import scala.Tuple2;
-import scala.collection.Seq;
 
-import javax.sound.midi.SysexMessage;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
@@ -57,9 +43,6 @@ public class G05HW1 {
         // SETTING GLOBAL VARIABLES
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        long numdocs, numwords;
-        numdocs = docs.count();
-        System.out.println("Number of documents = " + numdocs);
         JavaPairRDD<String, Long> count;
 
         Random randomGenerator = new Random();
@@ -109,8 +92,6 @@ public class G05HW1 {
         // IMPROVED WORD COUNT with mapPartitions
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        // TODO : understand how to get pair with maximum count
-        // TODO : understand how to produce the pair ("maxPartitionSize",N_max)
         count = docs
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
                     String filtered = document.replaceAll("[0-9 ]", "");
@@ -130,10 +111,6 @@ public class G05HW1 {
                 })
                 // cc = pairs.iterator (class count)
                 // this reduce phase count for each worker the number of each element
-                //        {Action=224, Horror=782, Drama=222, Thriller=21, Crime=210, Fantasy=212, Animation=210, Romance=220, Comedy=206, SciFi=193}
-                //        {Action=196, Horror=766, Drama=203, Thriller=19, Crime=196, Fantasy=220, Animation=219, Romance=212, Comedy=231, SciFi=238}
-                //        {Action=211, Horror=770, Drama=217, Thriller=16, Crime=220, Fantasy=213, Animation=201, Romance=197, Comedy=218, SciFi=237}
-                //        {Action=215, Horror=737, Drama=228, Thriller=35, Crime=192, Fantasy=226, Romance=235, Animation=215, Comedy=208, SciFi=209}
                 .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
                     HashMap<String, Long> counts = new HashMap<>();
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
@@ -155,25 +132,42 @@ public class G05HW1 {
                     return sum;
                 });
 
-        long n_max = 0;
+        Map<String, Long> map = count.sortByKey().collectAsMap();
+
+        // Computing the maxPartitionSize
+        Long n_max = 0L;
         for (int i = 0; i < K; i++) {
-            for (Tuple2<String, Long> c : count.collect()) {
+            for (Tuple2<String, Long> c : count.sortByKey().collect()) {
                 if (c._1().equals("maxPartitionSize" + i)) {
                     if (c._2() >= n_max) {
                         n_max = c._2();
                     }
                 }
             }
-            int final_index = i;
-            count.filter(w -> w._1.equals("maxPartitionSize" + final_index));
-            System.out.println(count.collect());
+
+            map.remove("maxPartitionSize" + i);
+
         }
 
-        System.out.println(count.collect());
+        // todo fixare sta cazzo di stringa
+        ArrayList<String> max_pair = computeMax(map);
+
         System.out.println("VERSION WITH SPARK PARTITIONS");
-        System.out.println("Most frequent class =  pair (class, count) with max count");
+        System.out.println("Most frequent class = " + max_pair.get(0));
         System.out.println("Max partition size = " + n_max);
 
+    }
+
+    public static ArrayList<String> computeMax(Map<String, Long> map) {
+        ArrayList<String> s = new ArrayList<>();
+        Map.Entry<String, Long> maxEntry = Collections.max(map.entrySet(), Map.Entry.comparingByValue());
+        for (Map.Entry<String, Long> e : map.entrySet()) {
+            if (maxEntry.getValue().equals(e.getValue())) {
+                s.add("(" + e.getKey() + "," + e.getValue() + ")");
+            }
+        }
+        Collections.sort(s);
+        return s;
     }
 
 }
