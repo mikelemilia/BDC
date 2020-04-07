@@ -53,13 +53,11 @@ public class G05HW1 {
                     String filtered = document.replaceAll("[0-9 ]", "");
                     String[] tokens = filtered.split("[\\r\\n]+");
 
-                    HashMap<String, Long> counts = new HashMap<>();
+                    // HashMap removed, because each row represents a single instance,
+                    // No need to aggregate a single entry
                     ArrayList<Tuple2<Integer, Tuple2<String, Long>>> pairs = new ArrayList<>();
                     for (String token : tokens) {
-                        counts.put(token, 1L /*+ counts.getOrDefault(token, 0L)*/); // TODO: understand why counts.getOrDefault(token, 0L) return always 0L
-                    }
-                    for (Map.Entry<String, Long> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<>(randomGenerator.nextInt(K), new Tuple2<>(e.getKey(), e.getValue())));
+                        pairs.add(new Tuple2<>(randomGenerator.nextInt(K), new Tuple2<>(token, 1L)));
                     }
                     return pairs.iterator();
                 })
@@ -99,28 +97,19 @@ public class G05HW1 {
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
 
                     // Regex used to filter the input data.
-                    String filtered = document.replaceAll("[0-9 ]", "");
+                    String filtered = document.replaceAll("[0-9 ]+", "");
                     String[] tokens = filtered.split("[\\r\\n]+");
 
-                    // Variable used to store the maxPartitionSize of this partition
-                    // with id -> TaskContext.getPartitionId()
-                    Long maxPartitionSize = 0L;
-                    HashMap<String, Long> counts = new HashMap<>();
+                    // HashMap removed, because each row represents a single instance,
+                    // No need to aggregate a single entry
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
                     for (String token : tokens) {
-                        counts.put(token, 1L /*+ counts.getOrDefault(token, 0L)*/); // TODO: understand why counts.getOrDefault(token, 0L) return always 0L
-
-                        // Foreach token analyzed by the worker in this partition with
-                        // id -> TaskContext.getPartitionId() increment the partition size
-                        maxPartitionSize++;
+                        pairs.add(new Tuple2<>(token, 1L));
                     }
 
-                    // Adding the pair ("maxPartitionSize{id}", maxPartitionSize) in the MAP PHASE
-                    counts.put("maxPartitionSize" + TaskContext.getPartitionId(), maxPartitionSize);
-
-                    for (Map.Entry<String, Long> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<>(e.getKey(), e.getValue()));
-                    }
+                    // Foreach worker in this partition with id -> TaskContext.getPartitionId()
+                    // the pair ("maxPartitionSize{id}", pairs.size) is added
+                    pairs.add(new Tuple2<>("maxPartitionSize" + TaskContext.getPartitionId(), (long) pairs.size()));
                     return pairs.iterator();
                 })
                 .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
