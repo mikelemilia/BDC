@@ -48,12 +48,15 @@ public class G05HW1 {
         Random randomGenerator = new Random();
         count = docs
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
+
+                    // Regex used to filter the input data.
                     String filtered = document.replaceAll("[0-9 ]", "");
                     String[] tokens = filtered.split("[\\r\\n]+");
+
                     HashMap<String, Long> counts = new HashMap<>();
                     ArrayList<Tuple2<Integer, Tuple2<String, Long>>> pairs = new ArrayList<>();
                     for (String token : tokens) {
-                        counts.put(token, 1L + counts.getOrDefault(token, 0L));
+                        counts.put(token, 1L /*+ counts.getOrDefault(token, 0L)*/); // TODO: understand why counts.getOrDefault(token, 0L) return always 0L
                     }
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
                         pairs.add(new Tuple2<>(randomGenerator.nextInt(K), new Tuple2<>(e.getKey(), e.getValue())));
@@ -94,23 +97,32 @@ public class G05HW1 {
 
         count = docs
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
+
+                    // Regex used to filter the input data.
                     String filtered = document.replaceAll("[0-9 ]", "");
                     String[] tokens = filtered.split("[\\r\\n]+");
+
+                    // Variable used to store the maxPartitionSize of this partition
+                    // with id -> TaskContext.getPartitionId()
+                    Long maxPartitionSize = 0L;
                     HashMap<String, Long> counts = new HashMap<>();
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
-                    Long maxPartitionSize = 0L; // our max partition size
                     for (String token : tokens) {
-                        counts.put(token, 1L /*+ counts.getOrDefault(token, 0L)*/);
-                        maxPartitionSize++; // count 1 for each put
+                        counts.put(token, 1L /*+ counts.getOrDefault(token, 0L)*/); // TODO: understand why counts.getOrDefault(token, 0L) return always 0L
+
+                        // Foreach token analyzed by the worker in this partition with
+                        // id -> TaskContext.getPartitionId() increment the partition size
+                        maxPartitionSize++;
                     }
-                    counts.put("maxPartitionSize" + TaskContext.getPartitionId(), maxPartitionSize); // insert the maxPartitionSize into the counts
+
+                    // Adding the pair ("maxPartitionSize{id}", maxPartitionSize) in the MAP PHASE
+                    counts.put("maxPartitionSize" + TaskContext.getPartitionId(), maxPartitionSize);
+
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
                         pairs.add(new Tuple2<>(e.getKey(), e.getValue()));
                     }
-                    return pairs.iterator();  /// this return the iterator for the tuple
+                    return pairs.iterator();
                 })
-                // cc = pairs.iterator (class count)
-                // this reduce phase count for each worker the number of each element
                 .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
                     HashMap<String, Long> counts = new HashMap<>();
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
@@ -132,42 +144,61 @@ public class G05HW1 {
                     return sum;
                 });
 
-        Map<String, Long> map = count.sortByKey().collectAsMap();
+        //  Temporary Map used to clone the RDD entry and do transformation on them
+        Map<String, Long> count_map = count.sortByKey().collectAsMap();
 
-        // Computing the maxPartitionSize
-        Long n_max = 0L;
+        Long n_max = 0L; // n_max store the highest class count
         for (int i = 0; i < K; i++) {
             for (Tuple2<String, Long> c : count.sortByKey().collect()) {
                 if (c._1().equals("maxPartitionSize" + i)) {
-                    if (c._2() >= n_max) {
-                        n_max = c._2();
-                    }
+                    if (c._2() >= n_max) n_max = c._2();
                 }
             }
 
-            map.remove("maxPartitionSize" + i);
+            // Removing the class "maxPartitionSize{id} to avoid possible
+            // misleading information when finding the real max class count
+            count_map.remove("maxPartitionSize" + i);
 
         }
 
-        // todo fixare sta cazzo di stringa
-        ArrayList<String> max_pair = computeMax(map);
+        Tuple2<String, Long> max_pair = computeMax(count_map);
 
         System.out.println("VERSION WITH SPARK PARTITIONS");
-        System.out.println("Most frequent class = " + max_pair.get(0));
+        System.out.println("Most frequent class = " + max_pair);
         System.out.println("Max partition size = " + n_max);
 
     }
 
-    public static ArrayList<String> computeMax(Map<String, Long> map) {
-        ArrayList<String> s = new ArrayList<>();
-        Map.Entry<String, Long> maxEntry = Collections.max(map.entrySet(), Map.Entry.comparingByValue());
+    /**
+     * <p>
+     *     computeMax compute all the tuples with max class count
+     *     and sort them in alphabetical order if there's tuples
+     *     that contains same max value.
+     *     Remember that [A-Z] < [a-z]
+     * </p>
+     * @param map the mapped version of the RDD
+     * @return the entry with max class count value and min lexicographic key
+     */
+    public static Tuple2<String, Long> computeMax(Map<String, Long> map) {
+
+        // Support ArrayList that will contain all the classes with the same count
+        ArrayList<Tuple2<String, Long>> m = new ArrayList<>();
+
+        // max value contains max(class count inside the input map)
+        Map.Entry<String, Long> max_value = Collections.max(map.entrySet(), Map.Entry.comparingByValue());
+
+        // Foreach map entry, if there's more than one class with max_value, add it into the support ArrayList
         for (Map.Entry<String, Long> e : map.entrySet()) {
-            if (maxEntry.getValue().equals(e.getValue())) {
-                s.add("(" + e.getKey() + "," + e.getValue() + ")");
+            if (max_value.getValue().equals(e.getValue())) {
+                m.add(new Tuple2<>(e.getKey(), e.getValue()));
             }
         }
-        Collections.sort(s);
-        return s;
+
+        // Sort the key added before in lexicographic order
+        m.sort(Comparator.comparing(Tuple2::_1));
+
+        // Return the first tuple
+        return m.get(0);
     }
 
 }
