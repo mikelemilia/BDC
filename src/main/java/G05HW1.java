@@ -48,7 +48,6 @@ public class G05HW1 {
         JavaPairRDD<String, Long> count;
         JavaPairRDD<String, Long> tmp;
 
-        Random randomGenerator = new Random();
         count = docs
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
 
