@@ -1,3 +1,5 @@
+import javafx.concurrent.Task;
+import org.apache.log4j.lf5.LogLevel;
 import org.apache.spark.SparkConf;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -44,21 +46,28 @@ public class G05HW1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
         JavaPairRDD<String, Long> count;
+        JavaPairRDD<String, Long> tmp;
 
         Random randomGenerator = new Random();
         count = docs
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
 
-                    // Regex used to filter the input data.
-                    String filtered = document.replaceAll("[0-9 ]", "");
-                    String[] tokens = filtered.split("[\\r\\n]+");
-
-                    // HashMap removed, because each row represents a single instance,
-                    // No need to aggregate a single entry
+                    // Each row of the document is split by " "
+                    String[] tokens = document.split(" ");
                     ArrayList<Tuple2<Integer, Tuple2<String, Long>>> pairs = new ArrayList<>();
+
+                    int index = 0;
+
+                    // Scan all the token in each row
                     for (String token : tokens) {
-                        pairs.add(new Tuple2<>(randomGenerator.nextInt(K), new Tuple2<>(token, 1L)));
+                        // Add the token only if it's not a number
+                        if (token.matches("[0-9 ]+")) {
+                            index = Integer.parseInt(token);
+                        } else {
+                            pairs.add(new Tuple2<>((index % K), new Tuple2<>(token, 1L)));
+                        }
                     }
+
                     return pairs.iterator();
                 })
                 .groupByKey()    // <-- REDUCE PHASE (R1)
@@ -96,25 +105,27 @@ public class G05HW1 {
         count = docs
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
 
-                    // Regex used to filter the input data.
-                    String filtered = document.replaceAll("[0-9 ]+", "");
-                    String[] tokens = filtered.split("[\\r\\n]+");
-
-                    // HashMap removed, because each row represents a single instance,
-                    // No need to aggregate a single entry
+                    // Each row of the document is split by " "
+                    String[] tokens = document.split(" ");
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
-                    for (String token : tokens) {
-                        pairs.add(new Tuple2<>(token, 1L));
-                    }
 
-                    // Foreach worker in this partition with id -> TaskContext.getPartitionId()
-                    // the pair ("maxPartitionSize{id}", pairs.size) is added
+                    // Scan all the token in each row
+                    for (String token : tokens) {
+                        // Add the token only if it's not a number
+                        if (!token.matches("[0-9 ]+")) {
+                            pairs.add(new Tuple2<>(token, 1L));
+                        }
+                    }
+                    // Insert the pair ("maxPartitionSize", n_max)
+                    // Note that n_max = 1L cause each tokens had only one word
                     pairs.add(new Tuple2<>("maxPartitionSize" + TaskContext.getPartitionId(), (long) pairs.size()));
                     return pairs.iterator();
                 })
                 .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
+
                     HashMap<String, Long> counts = new HashMap<>();
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
+
                     while (cc.hasNext()) {
                         Tuple2<String, Long> tuple = cc.next();
                         counts.put(tuple._1(), tuple._2() + counts.getOrDefault(tuple._1(), 0L));
@@ -122,9 +133,10 @@ public class G05HW1 {
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
                         pairs.add(new Tuple2<>(e.getKey(), e.getValue()));
                     }
+
                     return pairs.iterator();
                 })
-                .groupByKey()     // <-- REDUCE PHASE (R2)
+                .groupByKey() // <-- REDUCE PHASE (R2)
                 .mapValues((it) -> {
                     long sum = 0;
                     for (long c : it) {
@@ -133,9 +145,14 @@ public class G05HW1 {
                     return sum;
                 });
 
-        //  Temporary Map used to clone the RDD entry and do transformation on them
+        // TODO understand how to use RDD function to get interesting info about data
+        // Temporary Map used to clone the RDD entry and do transformation on them
         Map<String, Long> count_map = count.sortByKey().collectAsMap();
+        Tuple2<String, Long> max_pair = computeMax(count_map);
 
+//        tmp= count.filter(w -> w._1.contains("maxPartitionSize"));
+//        System.out.println(tmp.max(Comparator.comparingLong(Tuple2::_2$mcC$sp))._2);
+//        System.out.println("~"+count.subtractByKey(tmp).sortByKey().collect());
         Long n_max = 0L; // n_max store the highest class count
         for (int i = 0; i < K; i++) {
             for (Tuple2<String, Long> c : count.sortByKey().collect()) {
@@ -150,8 +167,6 @@ public class G05HW1 {
 
         }
 
-        Tuple2<String, Long> max_pair = computeMax(count_map);
-
         System.out.println("VERSION WITH SPARK PARTITIONS");
         System.out.println("Most frequent class = " + max_pair);
         System.out.println("Max partition size = " + n_max);
@@ -160,11 +175,12 @@ public class G05HW1 {
 
     /**
      * <p>
-     *     computeMax compute all the tuples with max class count
-     *     and sort them in alphabetical order if there's tuples
-     *     that contains same max value.
-     *     Remember that [A-Z] < [a-z]
+     * computeMax compute all the tuples with max class count
+     * and sort them in alphabetical order if there's tuples
+     * that contains same max value.
+     * Remember that [A-Z] < [a-z]
      * </p>
+     *
      * @param map the mapped version of the RDD
      * @return the entry with max class count value and min lexicographic key
      */
