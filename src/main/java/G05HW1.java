@@ -148,8 +148,8 @@ public class G05HW1 {
                 });
 
         partitionCount = classCount.filter(w -> w._1.contains("maxPartitionSize"));
-        Tuple2<String, Long> n_max = partitionCount.max(new maxComparator());
-        Tuple2<String, Long> max_pair = classCount.subtractByKey(partitionCount).sortByKey().max(new maxComparator());
+        Tuple2<String, Long> n_max = partitionCount.max(new tupleComparator());
+        Tuple2<String, Long> max_pair = classCount.subtractByKey(partitionCount).sortByKey().max(new tupleComparator());
 
         System.out.println("VERSION WITH SPARK PARTITIONS");
         System.out.println("Most frequent class = " + max_pair);
@@ -157,7 +157,7 @@ public class G05HW1 {
 
     }
 
-    public static class maxComparator implements Serializable, Comparator<Tuple2<String, Long>> {
+    public static class tupleComparator implements Serializable, Comparator<Tuple2<String, Long>> {
 
         @Override
         public int compare(Tuple2<String, Long> tuple1, Tuple2<String, Long> tuple2) {
