@@ -8,8 +8,6 @@ import scala.Tuple2;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.ToLongFunction;
 
 public class G05HW1 {
 
