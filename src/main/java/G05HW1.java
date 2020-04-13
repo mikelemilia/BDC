@@ -164,13 +164,10 @@ public class G05HW1 {
 
             if (tuple1._2 < tuple2._2) return -1;
             else if (tuple1._2 > tuple2._2) return 1;
+            else
+                // return the smaller class in alphabetical order, if there're tuples with same count
+                return tuple2._1.compareTo(tuple1._1);
 
-            else {
-                // When count is equal we return the smaller class in alphabetical order
-                if (tuple2._1.compareTo(tuple1._1) < 0) return -1;
-                else if (tuple2._1.compareTo(tuple1._1) > 0) return 1;
-                return 0;
-            }
         }
 
     }
