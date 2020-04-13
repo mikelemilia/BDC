@@ -26,9 +26,9 @@ public class G05HW1 {
         // SPARK SETUP
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        SparkConf conf = new SparkConf(true).setAppName("First BDC HW 2020");
-        JavaSparkContext sc = new JavaSparkContext(conf);
-        sc.setLogLevel("WARN");
+        SparkConf conf = new SparkConf(true).setAppName("First BDC HW 2020");   // configuration
+        JavaSparkContext sc = new JavaSparkContext(conf);   // create an instance of SparkContext
+        sc.setLogLevel("WARN");     // set the log level
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // INPUT READING
