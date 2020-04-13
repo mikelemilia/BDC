@@ -1,5 +1,3 @@
-import javafx.concurrent.Task;
-import org.apache.log4j.lf5.LogLevel;
 import org.apache.spark.SparkConf;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -8,7 +6,10 @@ import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 public class G05HW1 {
 
@@ -27,7 +28,7 @@ public class G05HW1 {
         // SPARK SETUP
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        SparkConf conf = new SparkConf(true).setAppName("Homework1");
+        SparkConf conf = new SparkConf(true).setAppName("First BDC HW 2020");
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
 
@@ -39,31 +40,35 @@ public class G05HW1 {
         int K = Integer.parseInt(args[0]);
 
         // Read input file and subdivide it into K random partitions
-        JavaRDD<String> docs = sc.textFile(args[1]).repartition(K);
+        JavaRDD<String> pairStrings = sc.textFile(args[1]).repartition(K);
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // SETTING GLOBAL VARIABLES
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        JavaPairRDD<String, Long> count;
-        JavaPairRDD<String, Long> tmp;
+        JavaPairRDD<String, Long> classCount;
+        JavaPairRDD<String, Long> partitionCount;
 
-        count = docs
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+        // Version with deterministic partitions
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+        classCount = pairStrings
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
 
                     // Each row of the document is split by " "
                     String[] tokens = document.split(" ");
                     ArrayList<Tuple2<Integer, Tuple2<String, Long>>> pairs = new ArrayList<>();
 
-                    int index = 0;
+                    int i = 0;
 
                     // Scan all the token in each row
                     for (String token : tokens) {
                         // Add the token only if it's not a number
                         if (token.matches("[0-9 ]+")) {
-                            index = Integer.parseInt(token);
+                            i = Integer.parseInt(token);
                         } else {
-                            pairs.add(new Tuple2<>((index % K), new Tuple2<>(token, 1L)));
+                            pairs.add(new Tuple2<>((i % K), new Tuple2<>(token, 1L)));
                         }
                     }
 
@@ -92,16 +97,16 @@ public class G05HW1 {
 
         System.out.println("VERSION WITH DETERMINISTIC PARTITIONS");
         StringBuilder o = new StringBuilder();
-        for (Tuple2<String, Long> o_pairs : count.sortByKey().collect()) {
+        for (Tuple2<String, Long> o_pairs : classCount.sortByKey().collect()) {
             o.append(o_pairs).append(" ");
         }
         System.out.println("Output pairs: " + o);
 
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // IMPROVED WORD COUNT with mapPartitions
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&
+        // Version with Spark partition
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        count = docs
+        classCount = pairStrings
                 .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
 
                     // Each row of the document is split by " "
@@ -144,65 +149,32 @@ public class G05HW1 {
                     return sum;
                 });
 
-        // TODO understand how to use RDD function to get interesting info about data
-        // Temporary Map used to clone the RDD entry and do transformation on them
-        Map<String, Long> count_map = count.sortByKey().collectAsMap();
-        Tuple2<String, Long> max_pair = computeMax(count_map);
-
-//        tmp= count.filter(w -> w._1.contains("maxPartitionSize"));
-//        System.out.println(tmp.max(Comparator.comparingLong(Tuple2::_2$mcC$sp))._2);
-//        System.out.println("~"+count.subtractByKey(tmp).sortByKey().collect());
-        Long n_max = 0L; // n_max store the highest class count
-        for (int i = 0; i < K; i++) {
-            for (Tuple2<String, Long> c : count.sortByKey().collect()) {
-                if (c._1().equals("maxPartitionSize" + i)) {
-                    if (c._2() >= n_max) n_max = c._2();
-                }
-            }
-
-            // Removing the class "maxPartitionSize{id} to avoid possible
-            // misleading information when finding the real max class count
-            count_map.remove("maxPartitionSize" + i);
-
-        }
+        partitionCount = classCount.filter(w -> w._1.contains("maxPartitionSize"));
+        Tuple2<String, Long> n_max = partitionCount.max(new maxComparator());
+        Tuple2<String, Long> max_pair = classCount.subtractByKey(partitionCount).sortByKey().max(new maxComparator());
 
         System.out.println("VERSION WITH SPARK PARTITIONS");
         System.out.println("Most frequent class = " + max_pair);
-        System.out.println("Max partition size = " + n_max);
+        System.out.println("Max partition size = " + n_max._2);
 
     }
 
-    /**
-     * <p>
-     * computeMax compute all the tuples with max class count
-     * and sort them in alphabetical order if there's tuples
-     * that contains same max value.
-     * Remember that [A-Z] < [a-z]
-     * </p>
-     *
-     * @param map the mapped version of the RDD
-     * @return the entry with max class count value and min lexicographic key
-     */
-    public static Tuple2<String, Long> computeMax(Map<String, Long> map) {
+    public static class maxComparator implements Serializable, Comparator<Tuple2<String, Long>> {
 
-        // Support ArrayList that will contain all the classes with the same count
-        ArrayList<Tuple2<String, Long>> m = new ArrayList<>();
+        @Override
+        public int compare(Tuple2<String, Long> tuple1, Tuple2<String, Long> tuple2) {
 
-        // max value contains max(class count inside the input map)
-        Map.Entry<String, Long> max_value = Collections.max(map.entrySet(), Map.Entry.comparingByValue());
+            if (tuple1._2 < tuple2._2) return -1;
+            else if (tuple1._2 > tuple2._2) return 1;
 
-        // Foreach map entry, if there's more than one class with max_value, add it into the support ArrayList
-        for (Map.Entry<String, Long> e : map.entrySet()) {
-            if (max_value.getValue().equals(e.getValue())) {
-                m.add(new Tuple2<>(e.getKey(), e.getValue()));
+            else {
+                // When count is equal we return the smaller class in alphabetical order
+                if (tuple2._1.compareTo(tuple1._1) < 0) return -1;
+                else if (tuple2._1.compareTo(tuple1._1) > 0) return 1;
+                return 0;
             }
         }
 
-        // Sort the key added before in lexicographic order
-        m.sort(Comparator.comparing(Tuple2::_1));
-
-        // Return the first tuple
-        return m.get(0);
     }
 
 }
