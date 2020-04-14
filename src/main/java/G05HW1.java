@@ -111,6 +111,9 @@ public class G05HW1 {
                     String[] tokens = document.split(" ");
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
 
+                    // Initialize the pair ("maxPartitionSize", n_max)
+                    String maxPartitionSize = "maxPartitionSize" + TaskContext.getPartitionId();
+
                     // Scan all the token in each row
                     for (String token : tokens) {
                         // Add the token only if it's not a number
@@ -118,9 +121,9 @@ public class G05HW1 {
                             pairs.add(new Tuple2<>(token, 1L));
                         }
                     }
-                    // Insert the pair ("maxPartitionSize", n_max)
-                    // Note that n_max = 1L cause each tokens had only one word
-                    pairs.add(new Tuple2<>("maxPartitionSize" + TaskContext.getPartitionId(), (long) pairs.size()));
+
+                    // Note: pairs.size() = 1L cause each tokens had only one word
+                    pairs.add(new Tuple2<>(maxPartitionSize, (long) pairs.size()));
                     return pairs.iterator();
                 })
                 .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
@@ -165,7 +168,7 @@ public class G05HW1 {
             if (tuple1._2 < tuple2._2) return -1;
             else if (tuple1._2 > tuple2._2) return 1;
             else
-                // return the smaller class in alphabetical order, if there're tuples with same count
+                // return the smaller class in alphabetical order, if there are tuples with same count
                 return tuple2._1.compareTo(tuple1._1);
 
         }
