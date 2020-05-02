@@ -13,7 +13,7 @@ public class G05HW2 {
     private static double distanceFromSet(Vector x, ArrayList<Vector> S) {
         double d = Double.NEGATIVE_INFINITY;                        // initialize to infinity
         for (Vector s : S) {
-            double dist = Vectors.sqdist(x, s);
+            double dist = Math.sqrt(Vectors.sqdist(x, s));
             if (dist > d) d = dist;
         }
         return d;
@@ -23,7 +23,7 @@ public class G05HW2 {
         double dist = Double.NEGATIVE_INFINITY;
         for (Vector s : S) {
             for (Vector t : S) {
-                double d = Vectors.sqdist(s, t);
+                double d = Math.sqrt(Vectors.sqdist(s, t));
                 if (d > dist) dist = d;
             }
         }
@@ -42,14 +42,16 @@ public class G05HW2 {
 
         C = S;
         for (int i = 0; i < k; i++) {
-            int l = rand.nextInt();
-            T.add(C.get(l));
-            C.remove(l);
+            int l = (int) Math.abs(rand.nextInt() % Math.sqrt(C.size()));
+
+            Vector c = C.get(l);
+            T.add(c);
+            C.remove(c);
         }
 
         for (Vector s : S) {
             for (Vector t : T) {
-                double d = Vectors.sqdist(s, t);
+                double d = Math.sqrt(Vectors.sqdist(s, t));
                 if (d > dist) dist = d;
             }
         }
