@@ -1,12 +1,31 @@
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
-
-import java.util.ArrayList;
-import java.util.Random;
-
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.Arrays;
+import java.util.StringTokenizer;
+import java.util.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+
+class Point implements Comparable<Point> {
+    double x, y;
+
+    public int compareTo(Point p) {
+        if (this.x == p.x) {
+            return 0;
+        } else if(this.x<p.x){
+            return -1;
+        }
+        else return 1;
+    }
+
+    public String toString() {
+        return "(" + x + "," + y + ")";
+    }
+
+}
 
 public class G05HW2 {
 
@@ -29,6 +48,59 @@ public class G05HW2 {
         }
         return dist;
     }
+
+    public static double cross(Point O, Point A, Point B) {
+        return (A.x - O.x) *(B.y - O.y) - (A.y - O.y) *(B.x - O.x);
+    }
+
+    public static Point[] convex_hull(Point[] P) {
+
+        if (P.length > 1) {
+            int n = P.length, k = 0;
+            Point[] H = new Point[2 * n];
+
+            Arrays.sort(P);
+
+            // Build lower hull
+            for (int i = 0; i < n; ++i) {
+                while (k >= 2 && cross(H[k - 2], H[k - 1], P[i]) <= 0.0)
+                    k--;
+                H[k++] = P[i];
+            }
+
+            // Build upper hull
+            for (int i = n - 2, t = k + 1; i >= 0; i--) {
+                while (k >= t && cross(H[k - 2], H[k - 1], P[i]) <= 0)
+                    k--;
+                H[k++] = P[i];
+            }
+            if (k > 1) {
+                H = Arrays.copyOfRange(H, 0, k - 1); // remove non-hull vertices after k; remove k - 1 which is a duplicate
+            }
+            return H;
+        } else if (P.length <= 1) {
+            return P;
+        } else {
+            return null;
+        }
+    }
+
+    public static double exactMPD_forConvexHull(Point[] P)
+    {
+        double dist = Double.NEGATIVE_INFINITY;
+        for(Point x : P)
+        {
+            for(Point y : P)
+            {
+                double d = Math.sqrt(Math.pow(x.x-y.x,2)+Math.pow(x.y-y.y,2));
+                if(d>dist) dist=d;
+            }
+        }
+
+        return dist;
+    }
+
+
 
     public static double twoApproxMPD(ArrayList<Vector> S, int k) {
         long seed = 1218949;
@@ -123,12 +195,35 @@ public class G05HW2 {
 
             int k = Integer.parseInt(args[1]);
 
+            int n = inputPoints.size();
+
+            System.out.println("Start Point conversion");
             long start = System.currentTimeMillis();
-            double exactMPD = exactMPD(inputPoints);
+            Point[] p = new Point[n];
+            for(int i = 0; i<n ; i++ )
+            {
+                Vector v = inputPoints.get(i);
+                double[] o = v.toArray();
+                p[i]= new Point();
+                p[i].x = o[0];
+                p[i].y = o[1];
+            }
+
             long end = System.currentTimeMillis();
+            System.out.println("Input Size= " + p.length);
+            System.out.println("conversion to Point finish in= " + (end - start) + "ms" );
+
+            System.out.println("Start finding Convex Hull");
+
+            start = System.currentTimeMillis();
+            Point[] hull = convex_hull(p).clone();
+            System.out.println("Finding Convex Hull diameter.");
+            System.out.println("Number of vertices in Convex Hull= " + hull.length);
+            double exactMPD_forConvexHull = exactMPD_forConvexHull(hull);
+            end = System.currentTimeMillis();
 
             System.out.println("EXACT ALGORITHM");
-            System.out.println("Max distance = " + exactMPD);
+            System.out.println("Max distance = " + exactMPD_forConvexHull);
             System.out.println("Running time = " + (end - start) + "ms");
 
             start = System.currentTimeMillis();
