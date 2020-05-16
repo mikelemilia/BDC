@@ -40,14 +40,14 @@ public class G05HW2 {
     private static double distanceFromSet(Vector x, ArrayList<Vector> S) {
         double d = Double.NEGATIVE_INFINITY;                        // initialize to infinity
         for (Vector s : S) {
-            double dist = Math.sqrt(Vectors.sqdist(x, s));
+            double dist = Math.sqrt(Vectors.sqdist(x, s));          // compute the squared root of a point from a point set
             if (dist > d) d = dist;
         }
         return d;
     }
 
-    public static double exactMPD(ArrayList<Vector> S) {
-        double dist = Double.NEGATIVE_INFINITY;
+    public static double exactMPD(ArrayList<Vector> S) {            // first required algorithm
+        double dist = Double.NEGATIVE_INFINITY;                     // initialize to infinity
         for (Vector s : S) {
             for (Vector t : S) {
                 double d = Math.sqrt(Vectors.sqdist(s, t));
@@ -57,23 +57,24 @@ public class G05HW2 {
         return dist;
     }
 
-    public static double twoApproxMPD(ArrayList<Vector> S, int k) {
+    public static double twoApproxMPD(ArrayList<Vector> S, int k) {     // second required algorithm
+
         long seed = 1218949;
         double dist = 0;
 
-        ArrayList<Vector> T = new ArrayList<>();
-        ArrayList<Vector> C;
+        ArrayList<Vector> T = new ArrayList<>();    // set of k random points
+        ArrayList<Vector> C;                        // clone of S, useful to avoid duplicate selected point
 
         Random rand = new Random();
         rand.setSeed(seed);
 
         C = S;
         for (int i = 0; i < k; i++) {
-            int l = (int) Math.abs(rand.nextInt() % Math.sqrt(C.size()));
+            int l = (int) Math.abs(rand.nextInt() % Math.sqrt(C.size()));       // select a random int
 
-            Vector c = C.get(l);
-            T.add(c);
-            C.remove(c);
+            Vector c = C.get(l);       // extract the point with the random index computed before
+            T.add(c);                  // add the point to T
+            C.remove(c);               // remove the point from C, to avoid selecting it again
         }
 
         for (Vector s : S) {
@@ -86,18 +87,18 @@ public class G05HW2 {
         return dist;
     }
 
-    private static ArrayList<Vector> kCenterMPD(ArrayList<Vector> PS, int k) {
+    private static ArrayList<Vector> kCenterMPD(ArrayList<Vector> PS, int k) {      // third required algorithm
         ArrayList<Vector> P;
         ArrayList<Vector> C = new ArrayList<>();
 
         P = PS;
 
-        C.add(P.remove((int) (Math.random() * P.size())));             // choose the first center as a random point of P
+        C.add(P.remove((int) (Math.random() * P.size())));          // choose the first center as a random point of P
 
         for (int i = 2; i <= k; i++) {                              // find the other k-1 centers
             double max = 0;
             Vector c = P.get(0);
-            for (Vector p : P) {                                      // find the point c in P - C that maximizes d(c,C)
+            for (Vector p : P) {                                    // find the point c in P - C that maximizes d(c,C)
                 double distance = distanceFromSet(p, C);
                 if (distance > max) {
                     max = distance;
@@ -143,14 +144,11 @@ public class G05HW2 {
                 H = Arrays.copyOfRange(H, 0, k - 1); // remove non-hull vertices after k; remove k - 1 which is a duplicate
             }
             return H;
-        } else {
-            return P;
-        }
-        /*else if (P.length <= 1) {             TODO: questo ramo può essere evitato, è sempre vero
+        } else if (P.length <= 1) {
             return P;
         } else {
             return null;
-        }*/
+        }
     }
 
     public static double exactMPD_convexHull(Point[] P) {
@@ -184,43 +182,45 @@ public class G05HW2 {
             // we use a geometry property of Set of Points to compute the Convex Hull in the
             // exactMPD_for ConvexHull() method. Using this method prevent the explosion of the
             // required time for computing the max pairwise distance between points.
-            // That is because the method runs in O(n*logn), while the exactMPD implemented from line 235
+            // That is because the method runs in O(n*logn), while the exactMPD implemented from line 224
             // runs in O(n^2), where n is the input size of our Pointset.
-            // Please feel free to remove the comment from line 214 to line 232
-            // In our tests the exactMPD_for ConvexHull took around 400ms to complete and return the right distance
+            // Please feel free to remove the comment from line 192 to line 222
+            // In our tests the exactMPD_convexHull took around 1000ms to complete and return the right distance
             // while the exactMPD took almost 10 hours (both for the uber-large dataset)
             // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
             //-----------------------------------------------------------------------------
-//            System.out.println("Start conversion from Vector to Point");
-//            start = System.currentTimeMillis();
-//
-//            Point[] p = new Point[inputPoints.size()];
-//            for (int i = 0; i < inputPoints.size(); i++) {
-//                Vector v = inputPoints.get(i);
-//                double[] o = v.toArray();
-//                p[i] = new Point();
-//                p[i].x = o[0];
-//                p[i].y = o[1];
-//            }
-//
-//            end = System.currentTimeMillis();
-//
-//            System.out.println("\tInput size : " + p.length);
-//            System.out.println("\tConversion to Point finish in : " + (end - start) + "ms");
-//
-//            System.out.println("Start finding Convex Hull");
-//
-//            start = System.currentTimeMillis();
-//            Point[] hull = convexHull(p).clone();
-//            System.out.println("\tFinding Convex Hull diameter : ");
-//            System.out.println("\tNumber of vertices in Convex Hull : " + hull.length + "\n");
-//            double exactMPD_convexHull = exactMPD_convexHull(hull);
-//            end = System.currentTimeMillis();
-//
-//            System.out.println("EXACT ALGORITHM (with Convex Hull)");
-//            System.out.println("Max distance = " + exactMPD_convexHull);
-//            System.out.println("Running time = " + (end - start) + "ms\n");
+            /*
+            System.out.println("Start conversion from Vector to Point");
+            start = System.currentTimeMillis();
+
+            Point[] p = new Point[inputPoints.size()];
+            for (int i = 0; i < inputPoints.size(); i++) {
+                Vector v = inputPoints.get(i);
+                double[] o = v.toArray();
+                p[i] = new Point();
+                p[i].x = o[0];
+                p[i].y = o[1];
+            }
+
+            end = System.currentTimeMillis();
+
+            System.out.println("\tInput size : " + p.length);
+            System.out.println("\tConversion to Point finish in : " + (end - start) + "ms");
+
+            System.out.println("Start finding Convex Hull");
+
+            start = System.currentTimeMillis();
+            Point[] hull = convexHull(p).clone();
+            System.out.println("\tFinding Convex Hull diameter : ");
+            System.out.println("\tNumber of vertices in Convex Hull : " + hull.length + "\n");
+            double exactMPD_convexHull = exactMPD_convexHull(hull);
+            end = System.currentTimeMillis();
+
+            System.out.println("EXACT ALGORITHM (with Convex Hull)");
+            System.out.println("Max distance = " + exactMPD_convexHull);
+            System.out.println("Running time = " + (end - start) + "ms\n");
+            */
             //-----------------------------------------------------------------------------
             System.out.println("EXACT ALGORITHM");
             start = System.currentTimeMillis();
@@ -265,12 +265,6 @@ class Point implements Comparable<Point> {
 
     public int compareTo(Point p) {
         return Double.compare(this.x, p.x);
-        /*if (this.x == p.x) {
-            return 0;
-        } else if(this.x<p.x){
-            return -1;
-        }
-        else return 1;*/
     }
 
     public String toString() {
