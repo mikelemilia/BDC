@@ -179,60 +179,72 @@ public class G05HW2 {
             ArrayList<Vector> inputPoints = readVectorsSeq(filename);   // gathering of all dataset points
             int k = Integer.parseInt(args[1]);                          // set the value of k
 
+            // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+            // This commented part applies a conversion to a predefined class called Point. After that
+            // we use a geometry property of Set of Points to compute the Convex Hull in the
+            // exactMPD_for ConvexHull() method. Using this method prevent the explosion of the
+            // required time for computing the max pairwise distance between points.
+            // That is because the method runs in O(n*logn), while the exactMPD implemented from line 235
+            // runs in O(n^2), where n is the input size of our Pointset.
+            // Please feel free to remove the comment from line 214 to line 232
+            // In our tests the exactMPD_for ConvexHull took around 400ms to complete and return the right distance
+            // while the exactMPD took almost 10 hours (both for the uber-large dataset)
+            // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
             //-----------------------------------------------------------------------------
-            System.out.println("Start conversion from Vector to Point");
-            start = System.currentTimeMillis();
-
-            Point[] p = new Point[inputPoints.size()];
-            for (int i = 0; i < inputPoints.size(); i++) {
-                Vector v = inputPoints.get(i);
-                double[] o = v.toArray();
-                p[i] = new Point();
-                p[i].x = o[0];
-                p[i].y = o[1];
-            }
-
-            end = System.currentTimeMillis();
-
-            System.out.println("\tInput size : " + p.length);
-            System.out.println("\tConversion to Point finish in : " + (end - start) + "ms");
-
-            System.out.println("Start finding Convex Hull");
-
-            start = System.currentTimeMillis();
-            Point[] hull = convexHull(p).clone();
-            System.out.println("\tFinding Convex Hull diameter : ");
-            System.out.println("\tNumber of vertices in Convex Hull : " + hull.length + "\n");
-            double exactMPD_convexHull = exactMPD_convexHull(hull);
-            end = System.currentTimeMillis();
-
-            System.out.println("EXACT ALGORITHM (with Convex Hull)");
-            System.out.println("Max distance = " + exactMPD_convexHull);
-            System.out.println("Running time = " + (end - start) + "ms\n");
-            //-----------------------------------------------------------------------------
+//            System.out.println("Start conversion from Vector to Point");
 //            start = System.currentTimeMillis();
-//            double exactMPD = exactMPD(inputPoints);
+//
+//            Point[] p = new Point[inputPoints.size()];
+//            for (int i = 0; i < inputPoints.size(); i++) {
+//                Vector v = inputPoints.get(i);
+//                double[] o = v.toArray();
+//                p[i] = new Point();
+//                p[i].x = o[0];
+//                p[i].y = o[1];
+//            }
+//
 //            end = System.currentTimeMillis();
 //
-//            System.out.println("EXACT ALGORITHM");
-//            System.out.println("Max distance = " + exactMPD);
+//            System.out.println("\tInput size : " + p.length);
+//            System.out.println("\tConversion to Point finish in : " + (end - start) + "ms");
+//
+//            System.out.println("Start finding Convex Hull");
+//
+//            start = System.currentTimeMillis();
+//            Point[] hull = convexHull(p).clone();
+//            System.out.println("\tFinding Convex Hull diameter : ");
+//            System.out.println("\tNumber of vertices in Convex Hull : " + hull.length + "\n");
+//            double exactMPD_convexHull = exactMPD_convexHull(hull);
+//            end = System.currentTimeMillis();
+//
+//            System.out.println("EXACT ALGORITHM (with Convex Hull)");
+//            System.out.println("Max distance = " + exactMPD_convexHull);
 //            System.out.println("Running time = " + (end - start) + "ms\n");
             //-----------------------------------------------------------------------------
+            System.out.println("EXACT ALGORITHM");
+            start = System.currentTimeMillis();
+            double exactMPD = exactMPD(inputPoints);
+            end = System.currentTimeMillis();
+
+            System.out.println("Max distance = " + exactMPD);
+            System.out.println("Running time = " + (end - start) + "ms\n");
+            //-----------------------------------------------------------------------------
+            System.out.println("2-APPROXIMATION ALGORITHM");
             start = System.currentTimeMillis();
             double twoApproxMPD = twoApproxMPD(inputPoints, k);
             end = System.currentTimeMillis();
 
-            System.out.println("2-APPROXIMATION ALGORITHM");
             System.out.println("k = " + k);
             System.out.println("Max distance = " + twoApproxMPD);
             System.out.println("Running time = " + (end - start) + "ms\n");
             //-----------------------------------------------------------------------------
+            System.out.println("k-CENTER-BASED ALGORITHM");
             start = System.currentTimeMillis();
             ArrayList<Vector> kCenterMPD = kCenterMPD(inputPoints, k);
             double exact_kCenterMPD = exactMPD(kCenterMPD);
             end = System.currentTimeMillis();
 
-            System.out.println("k-CENTER-BASED ALGORITHM");
             System.out.println("k = " + k);
             System.out.println("Max distance = " + exact_kCenterMPD);
             System.out.println("Running time = " + (end - start) + "ms\n");
