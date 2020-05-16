@@ -177,14 +177,19 @@ public class G05HW2 {
             ArrayList<Vector> inputPoints = readVectorsSeq(filename);   // gathering of all dataset points
             int k = Integer.parseInt(args[1]);                          // set the value of k
 
+            if(k > Math.sqrt(inputPoints.size())) {
+                System.err.println("The value of k MUST be lower or equal to the squared root of |S|, where S is the input set");
+                System.exit(-1);
+            }
+
             // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
             // This commented part applies a conversion to a predefined class called Point. After that
             // we use a geometry property of Set of Points to compute the Convex Hull in the
             // exactMPD_for ConvexHull() method. Using this method prevent the explosion of the
             // required time for computing the max pairwise distance between points.
-            // That is because the method runs in O(n*logn), while the exactMPD implemented from line 225
+            // That is because the method runs in O(n*logn), while the exactMPD implemented from line 230
             // runs in O(n^2), where n is the input size of our Pointset.
-            // Please feel free to remove the comment from line 193 to line 223
+            // Please feel free to remove the comment from line 198 to line 228
             // In our tests the exactMPD_convexHull took around 1000ms to complete and return the right distance
             // while the exactMPD took almost 10 hours (both for the uber-large dataset)
             // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
