@@ -182,9 +182,9 @@ public class G05HW2 {
             // we use a geometry property of Set of Points to compute the Convex Hull in the
             // exactMPD_for ConvexHull() method. Using this method prevent the explosion of the
             // required time for computing the max pairwise distance between points.
-            // That is because the method runs in O(n*logn), while the exactMPD implemented from line 224
+            // That is because the method runs in O(n*logn), while the exactMPD implemented from line 225
             // runs in O(n^2), where n is the input size of our Pointset.
-            // Please feel free to remove the comment from line 192 to line 222
+            // Please feel free to remove the comment from line 193 to line 223
             // In our tests the exactMPD_convexHull took around 1000ms to complete and return the right distance
             // while the exactMPD took almost 10 hours (both for the uber-large dataset)
             // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
