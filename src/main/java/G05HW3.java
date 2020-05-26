@@ -132,7 +132,7 @@ public class G05HW3 {
         // Stop the timer
         end = System.currentTimeMillis();
 
-        System.out.println("Runtime of Round 1 = " + (end - start) + "ms");
+        System.out.println("Runtime of Round 1 = " + (end - start) + " ms");
 
         // Measure the time taken by the computation of the final solution (through the sequential algorithm) on the coreset
         start = System.currentTimeMillis();
@@ -143,7 +143,7 @@ public class G05HW3 {
         // Stop the timer
         end = System.currentTimeMillis();
 
-        System.out.println("Runtime of Round 2 = " + (end - start) + "ms");
+        System.out.println("Runtime of Round 2 = " + (end - start) + " ms");
 
         return result;
     }
@@ -218,12 +218,14 @@ public class G05HW3 {
                 .repartition(L)
                 .cache();
 
+        int size = (int) inputPoints.count();
+
         long end = System.currentTimeMillis();
 
-        System.out.println("Number of points = " + inputPoints.count());
+        System.out.println("Number of points = " + size);
         System.out.println("k = " + k);
         System.out.println("L = " + L);
-        System.out.println("Initialization time = " + (end - start) + "ms");
+        System.out.println("Initialization time = " + (end - start) + " ms");
 
         ArrayList<Vector> solution = runMapReduce(inputPoints, k, L);
 
