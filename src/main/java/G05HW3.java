@@ -1,7 +1,6 @@
-import com.google.inject.internal.asm.$MethodAdapter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.lucene.util.fst.IntsRefFSTEnum;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -9,8 +8,6 @@ import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 public class G05HW3 {
@@ -175,18 +172,17 @@ public class G05HW3 {
 
         // ------------------------- COMPUTE THE NUMBER OF DISTINCT PAIRS -------------------------
 
-        // Initialize the denominator
-        double distinct = 0;
-
-        for (int k = 1; k < pointsSet.size(); k++) {
-            distinct += pointsSet.size() - k;
-        }
+//        // Initialize the denominator
+//        double distinct = 0;
+//
+//        for (int k = 1; k < pointsSet.size(); k++) {
+//            distinct += pointsSet.size() - k;
+//        }
 
         // ------------- COMPUTE THE AVERAGE DISTANCE BETWEEN ALL POINTS IN pointslist -------------
-//        double average = sum / ((pointsSet.size() * (pointsSet.size() - 1)) / 2);  // TODO check if it is correct
-        double average = sum / distinct;
+//          double average = sum / distinct;
 
-        return average;
+        return sum / ((pointsSet.size() * (pointsSet.size() - 1)) / 2); // TODO check
     }
 
     public static Vector strToVector(String str) {
