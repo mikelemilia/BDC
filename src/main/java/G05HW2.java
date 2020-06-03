@@ -37,14 +37,6 @@ public class G05HW2 {
     // Developed methods
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-    private static double distanceFromSet(Vector x, ArrayList<Vector> S) {
-        double d = Double.NEGATIVE_INFINITY;                        // initialize to infinity
-        for (Vector s : S) {
-            double dist = Math.sqrt(Vectors.sqdist(x, s));          // compute the squared root of a point from a point set
-            if (dist > d) d = dist;
-        }
-        return d;
-    }
 
     public static double exactMPD(ArrayList<Vector> S) {            // first required algorithm
         double dist = Double.NEGATIVE_INFINITY;                     // initialize to infinity
@@ -90,25 +82,41 @@ public class G05HW2 {
     private static ArrayList<Vector> kCenterMPD(ArrayList<Vector> PS, int k) {      // third required algorithm
         ArrayList<Vector> P;
         ArrayList<Vector> C = new ArrayList<>();
+        ArrayList<Double> dist = new ArrayList<>();             //arraylist of the distances. Simmetrical to P
+        for(int i= 0; i<PS.size();i++)
+        {
+            dist.add(Double.POSITIVE_INFINITY);                 //initialize all the distances to infinity
+        }
 
         P = PS;
 
-        C.add(P.remove((int) (Math.random() * P.size())));          // choose the first center as a random point of P
+        C.add(P.get((int) (Math.random() * P.size()))); // choose the first center as a random point of P
 
-        for (int i = 2; i <= k; i++) {                              // find the other k-1 centers
-            double max = 0;
-            Vector c = P.get(0);
-            for (Vector p : P) {                                    // find the point c in P - C that maximizes d(c,C)
-                double distance = distanceFromSet(p, C);
-                if (distance > max) {
-                    max = distance;
-                    c = p;
-                }
+        for(int i = 0; i<dist.size(); i++)
+        {
+            dist.set(i, Math.sqrt(Vectors.sqdist(C.get(0), P.get(i))));     //Update the distances from the first selected point
+        }
+
+        for(int l = 1; l<k; l++) //since we select all the k center do:
+        {
+            int max_index = dist.indexOf(Collections.max(dist)); //choose the point at max distance from the center set
+            C.add(P.get(max_index));                             //add to the center set
+
+            //update the disctances in the following way: For each remaining not-yet-selected point q,
+            // replace the distance stored for q by the minimum of its old value and the distance from p to q.
+            for(int i= 0; i<P.size();i++)
+            {
+                double d1 = dist.get(i);
+                double d2 = Math.sqrt(Vectors.sqdist(C.get(l), P.get(i)));
+                if(d1<= d2)
+                    dist.set(i, d1);
+                else
+                    dist.set(i, d2);
             }
-            C.add(P.remove(P.indexOf(c)));                          /* Update C adding the new center c. To obtain P - C,
-                                                                       each c added in C is removed from P */
+
         }
         return C;
+
     }
 
     // The following methods were developed to speed up the running
