@@ -70,32 +70,40 @@ public class G05HW3 {
 
     } // END runSequential
 
-    private static double distanceFromSet(Vector x, ArrayList<Vector> S) {
-        double d = Double.NEGATIVE_INFINITY;                        // initialize to infinity
-        for (Vector s : S) {
-            double dist = Math.sqrt(Vectors.sqdist(x, s));          // compute the squared root of a point from a point set
-            if (dist > d) d = dist;
-        }
-        return d;
-    }
 
     // Farthest-First Traversal
     private static ArrayList<Vector> kcenter(ArrayList<Vector> P, int k) {
         ArrayList<Vector> C = new ArrayList<>();
+        ArrayList<Double> dist = new ArrayList<>();             //arraylist of the distances. Simmetrical to P
+        for(int i= 0; i<P.size();i++)
+        {
+            dist.add(Double.POSITIVE_INFINITY);                 //initialize all the distances to infinity
+        }
 
-        C.add(P.remove((int) (Math.random() * P.size())));
+        C.add(P.get((int) (Math.random() * P.size()))); // choose the first center as a random point of P
 
-        for (int i = 2; i <= k; i++) {
-            double max = 0;
-            Vector c = P.get(0);
-            for (Vector p : P) {
-                double distance = distanceFromSet(p, C);
-                if (distance > max) {
-                    max = distance;
-                    c = p;
-                }
+        for(int i = 0; i<dist.size(); i++)
+        {
+            dist.set(i, Math.sqrt(Vectors.sqdist(C.get(0), P.get(i))));     //Update the distances from the first selected point
+        }
+
+        for(int l = 1; l<k; l++) //since we select all the k center do:
+        {
+            int max_index = dist.indexOf(Collections.max(dist)); //choose the point at max distance from the center set
+            C.add(P.get(max_index));                             //add to the center set
+
+            //update the disctances in the following way: For each remaining not-yet-selected point q,
+            // replace the distance stored for q by the minimum of its old value and the distance from p to q.
+            for(int i= 0; i<P.size();i++)
+            {
+                double d1 = dist.get(i);
+                double d2 = Math.sqrt(Vectors.sqdist(C.get(l), P.get(i)));
+                if(d1<= d2)
+                    dist.set(i, d1);
+                else
+                    dist.set(i, d2);
             }
-            C.add(P.remove(P.indexOf(c)));
+
         }
         return C;
     }
