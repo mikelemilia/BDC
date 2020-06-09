@@ -70,38 +70,30 @@ public class G05HW3 {
 
     } // END runSequential
 
-
     // Farthest-First Traversal
     private static ArrayList<Vector> kcenter(ArrayList<Vector> P, int k) {
         ArrayList<Vector> C = new ArrayList<>();
-        ArrayList<Double> dist = new ArrayList<>();             //arraylist of the distances. Simmetrical to P
-        for(int i= 0; i<P.size();i++)
-        {
-            dist.add(Double.POSITIVE_INFINITY);                 //initialize all the distances to infinity
+        ArrayList<Double> dist = new ArrayList<>();             // arraylist of the distances. Simmetrical to P
+        for (int i = 0; i < P.size(); i++) {
+            dist.add(Double.POSITIVE_INFINITY);                 // initialize all the distances to infinity
         }
 
-        C.add(P.get((int) (Math.random() * P.size()))); // choose the first center as a random point of P
+        C.add(P.get(0));                                        // choose the first center as a random point of P
 
-        for(int i = 0; i<dist.size(); i++)
-        {
-            dist.set(i, Math.sqrt(Vectors.sqdist(C.get(0), P.get(i))));     //Update the distances from the first selected point
+        for (int i = 0; i < dist.size(); i++) {
+            dist.set(i, Math.sqrt(Vectors.sqdist(C.get(0), P.get(i))));     // Update the distances from the first selected point
         }
 
-        for(int l = 1; l<k; l++) //since we select all the k center do:
-        {
+        for (int l = 1; l < k; l++) {   //since we select all the k center do:
             int max_index = dist.indexOf(Collections.max(dist)); //choose the point at max distance from the center set
             C.add(P.get(max_index));                             //add to the center set
 
             //update the disctances in the following way: For each remaining not-yet-selected point q,
             // replace the distance stored for q by the minimum of its old value and the distance from p to q.
-            for(int i= 0; i<P.size();i++)
-            {
+            for (int i = 0; i < P.size(); i++) {
                 double d1 = dist.get(i);
                 double d2 = Math.sqrt(Vectors.sqdist(C.get(l), P.get(i)));
-                if(d1<= d2)
-                    dist.set(i, d1);
-                else
-                    dist.set(i, d2);
+                dist.set(i, Math.min(d1, d2));
             }
 
         }
@@ -115,7 +107,7 @@ public class G05HW3 {
         // Measure the time taken by the coreset construction
         start = System.currentTimeMillis();
 
-        List<Vector> vecs = inputPoints.repartition(L)
+        List<Vector> vecs = inputPoints
                 .mapPartitions((partition) -> {
                     // ArrayList to store the vectors inside the partition
                     ArrayList<Vector> vectors = new ArrayList<Vector>();
@@ -161,6 +153,7 @@ public class G05HW3 {
 
         // Initialize the numerator
         double sum = 0;
+        int den = 0;
 
         // First point loop
         for (int i = 0; i < pointsSet.size(); i++) {
@@ -174,23 +167,23 @@ public class G05HW3 {
 
                 // Compute the square distance between the first and the second point
                 sum += Math.sqrt(Vectors.sqdist(first, second));
+                den++;
             }
-
         }
 
         // ------------------------- COMPUTE THE NUMBER OF DISTINCT PAIRS -------------------------
 
 //        // Initialize the denominator
-//        double distinct = 0;
+//        double den = 0;
 //
 //        for (int k = 1; k < pointsSet.size(); k++) {
-//            distinct += pointsSet.size() - k;
+//            den += pointsSet.size() - k;
 //        }
 
-        // ------------- COMPUTE THE AVERAGE DISTANCE BETWEEN ALL POINTS IN pointslist -------------
-//          double average = sum / distinct;
+//        double den = ((pointsSet.size() * (pointsSet.size() - 1)) / 2);
 
-        return sum / ((pointsSet.size() * (pointsSet.size() - 1)) / 2); // TODO check
+        // ------------- COMPUTE THE AVERAGE DISTANCE BETWEEN ALL POINTS IN pointslist -------------
+        return sum/den;
     }
 
     public static Vector strToVector(String str) {
@@ -213,15 +206,13 @@ public class G05HW3 {
         JavaSparkContext sc = new JavaSparkContext(conf);
         //------- DISABLE LOG MESSAGES
         Logger.getLogger("org").setLevel(Level.OFF);
-        Logger.getLogger("akka").setLevel(Level.OFF);
-
 
         int k = Integer.parseInt(args[1]);
         int L = Integer.parseInt((args[2]));
 
         long start = System.currentTimeMillis();
 
-        JavaRDD<Vector> inputPoints = sc.textFile(args[0]/*, L*/)
+        JavaRDD<Vector> inputPoints = sc.textFile(args[0])
                 .map(str -> strToVector(str))
                 .repartition(L)
                 .cache();
