@@ -107,7 +107,8 @@ public class G05HW3 {
         // Measure the time taken by the coreset construction
         start = System.currentTimeMillis();
 
-        List<Vector> vecs = inputPoints
+        JavaRDD<Vector> vecs = inputPoints
+                .repartition(L)
                 .mapPartitions((partition) -> {
                     // ArrayList to store the vectors inside the partition
                     ArrayList<Vector> vectors = new ArrayList<Vector>();
@@ -123,11 +124,10 @@ public class G05HW3 {
 
                     // Return k centers
                     return centers.iterator();
-                })
-                .collect();
+                });
 
-        // ArrayList to store the coreset
-        ArrayList<Vector> coreset = new ArrayList<>(vecs);
+        long j = vecs.count();  // used to avoid lazy evaluation
+        assert (L * k == j);       // check if we're using L*k points in coreset
 
         // Stop the timer
         end = System.currentTimeMillis();
@@ -136,6 +136,9 @@ public class G05HW3 {
 
         // Measure the time taken by the computation of the final solution (through the sequential algorithm) on the coreset
         start = System.currentTimeMillis();
+
+        // ArrayList to store the coreset
+        ArrayList<Vector> coreset = new ArrayList<>(vecs.collect());
 
         // ArrayList to store the resulting k
         ArrayList<Vector> result = runSequential(coreset, k);
@@ -183,7 +186,7 @@ public class G05HW3 {
 //        double den = ((pointsSet.size() * (pointsSet.size() - 1)) / 2);
 
         // ------------- COMPUTE THE AVERAGE DISTANCE BETWEEN ALL POINTS IN pointslist -------------
-        return sum/den;
+        return sum / den;
     }
 
     public static Vector strToVector(String str) {
@@ -214,10 +217,9 @@ public class G05HW3 {
 
         JavaRDD<Vector> inputPoints = sc.textFile(args[0])
                 .map(str -> strToVector(str))
-                .repartition(L)
                 .cache();
 
-        int size = (int) inputPoints.count();
+        long size = inputPoints.count();   // used for avoid lazy evaluation of RDD
 
         long end = System.currentTimeMillis();
 
