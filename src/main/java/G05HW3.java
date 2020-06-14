@@ -126,8 +126,8 @@ public class G05HW3 {
                     return centers.iterator();
                 });
 
-        long j = vecs.count();  // used to avoid lazy evaluation
-        assert (L * k == j);       // check if we're using L*k points in coreset
+        long pointsNumber = vecs.count();       // used to avoid lazy evaluation
+        assert (L * k == pointsNumber);         // check if we're using L*k points in coreset
 
         // Stop the timer
         end = System.currentTimeMillis();
@@ -140,7 +140,7 @@ public class G05HW3 {
         // ArrayList to store the coreset
         ArrayList<Vector> coreset = new ArrayList<>(vecs.collect());
 
-        // ArrayList to store the resulting k
+        // ArrayList to store the resulting k center
         ArrayList<Vector> result = runSequential(coreset, k);
 
         // Stop the timer
@@ -199,7 +199,6 @@ public class G05HW3 {
     }
 
     public static void main(String[] args) throws IOException {
-
 
         if (args.length == 0)
             throw new IllegalArgumentException("Excepting the file name on the command line");
