@@ -70,7 +70,10 @@ public class G05HW3 {
 
     } // END runSequential
 
-    // Farthest-First Traversal
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    // METHOD kcenter
+    // Implementation of the Fastest-First-Traversal Algorithm
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     private static ArrayList<Vector> kcenter(ArrayList<Vector> P, int k) {
         ArrayList<Vector> C = new ArrayList<>();
         ArrayList<Double> dist = new ArrayList<>();             // arraylist of the distances. Simmetrical to P
@@ -100,7 +103,10 @@ public class G05HW3 {
         return C;
     }
 
-    // runMapReduce
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    // METHOD runMapReduce
+    // Implementation for the Round 1 and 2.
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     private static ArrayList<Vector> runMapReduce(JavaRDD<Vector> inputPoints, int k, int L) {
         long start, end;
 
@@ -151,6 +157,10 @@ public class G05HW3 {
         return result;
     }
 
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    // METHOD measure
+    // Sequential 2-approximation based on matching
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     public static double measure(ArrayList<Vector> pointsSet) {
         // ----------------------- COMPUTE THE SUM OF ALL PAIRWISE DISTANCES ---------------------
 
@@ -173,19 +183,6 @@ public class G05HW3 {
                 den++;
             }
         }
-
-        // ------------------------- COMPUTE THE NUMBER OF DISTINCT PAIRS -------------------------
-
-//        // Initialize the denominator
-//        double den = 0;
-//
-//        for (int k = 1; k < pointsSet.size(); k++) {
-//            den += pointsSet.size() - k;
-//        }
-
-//        double den = ((pointsSet.size() * (pointsSet.size() - 1)) / 2);
-
-        // ------------- COMPUTE THE AVERAGE DISTANCE BETWEEN ALL POINTS IN pointslist -------------
         return sum / den;
     }
 
